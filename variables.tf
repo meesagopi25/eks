@@ -9,7 +9,7 @@ variable "environment" {
 }
 
 variable "cicd_role_arn" {
-  description = "IAM role ARN assumed by Jenkins"
+  description = "IAM role ARN assumed by Jenkins (optional)"
   type        = string
+  default     = ""
 }
-
