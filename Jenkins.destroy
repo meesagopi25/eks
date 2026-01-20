@@ -1,0 +1,97 @@
+pipeline {
+  agent any
+
+  environment {
+    TF_IN_AUTOMATION = "true"
+    AWS_DEFAULT_REGION = "us-east-1"
+  }
+
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+  }
+
+  stages {
+
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Terraform Init') {
+      environment {
+        AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+      }
+      steps {
+        sh '''
+          terraform --version
+          terraform init -reconfigure
+        '''
+      }
+    }
+
+    stage('Terraform Plan Destroy') {
+      environment {
+        AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+      }
+      steps {
+        sh '''
+          terraform plan \
+            -destroy \
+            -var-file=envs/prod/terraform.tfvars \
+            -out=tfdestroy
+        '''
+      }
+    }
+
+    stage('FINAL APPROVAL – DESTROY') {
+      steps {
+        input message: '''
+⚠️⚠️ FINAL CONFIRMATION REQUIRED ⚠️⚠️
+
+You are about to DESTROY ALL AWS resources
+managed by this Terraform state.
+
+This includes:
+- EKS cluster
+- Node groups
+- VPC, subnets
+- NAT Gateway
+- Security groups
+
+This action is IRREVERSIBLE.
+
+Click "DESTROY" only if you are 100% sure.
+''',
+        ok: 'DESTROY'
+      }
+    }
+
+    stage('Terraform Destroy') {
+      environment {
+        AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+      }
+      steps {
+        sh '''
+          terraform apply tfdestroy
+        '''
+      }
+    }
+  }
+
+  post {
+    success {
+      echo 'Terraform DESTROY completed successfully.'
+    }
+    failure {
+      echo 'Terraform DESTROY failed. Manual cleanup may be required.'
+    }
+    always {
+      archiveArtifacts artifacts: 'tfdestroy', fingerprint: true
+    }
+  }
+}
