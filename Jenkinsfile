@@ -38,7 +38,9 @@ pipeline {
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
       }
       steps {
-        sh 'terraform validate'
+        sh '''
+          terraform validate
+        '''
       }
     }
 
@@ -48,13 +50,17 @@ pipeline {
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
       }
       steps {
-        sh 'terraform plan -out=tfplan'
+        sh '''
+          terraform plan \
+            -var-file=envs/prod/terraform.tfvars \
+            -out=tfplan
+        '''
       }
     }
 
     stage('Manual Approval') {
       steps {
-        input message: 'Approve Terraform Apply (EKS change)?',
+        input message: 'Approve Terraform Apply (EKS create/modify)?',
               ok: 'Approve'
       }
     }
@@ -65,7 +71,9 @@ pipeline {
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
       }
       steps {
-        sh 'terraform apply tfplan'
+        sh '''
+          terraform apply tfplan
+        '''
       }
     }
   }
