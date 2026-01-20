@@ -1,0 +1,27 @@
+# =========================
+# Terraform
+# =========================
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+envs/*/terraform.tfvars
+
+# Provider lock file (see note below)
+#.terraform.lock.hcl
+
+# =========================
+# Jenkins
+# =========================
+jenkins-workspace/
+
+# =========================
+# Editor / OS
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
